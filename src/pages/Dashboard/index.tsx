@@ -28,16 +28,25 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     async function loadFoods(): Promise<void> {
       // TODO LOAD FOODS
+      await api.get('/foods').then(response => setFoods(response.data));
     }
 
     loadFoods();
-  }, []);
+  }, [setFoods]);
 
   async function handleAddFood(
     food: Omit<IFoodPlate, 'id' | 'available'>,
   ): Promise<void> {
     try {
       // TODO ADD A NEW FOOD PLATE TO THE API
+
+      const id = foods.length + 1;
+
+      const newFood = { id, ...food, available: true };
+
+      const response = await api.post('/foods', newFood);
+
+      setFoods([...foods, response.data]);
     } catch (err) {
       console.log(err);
     }
@@ -47,10 +56,25 @@ const Dashboard: React.FC = () => {
     food: Omit<IFoodPlate, 'id' | 'available'>,
   ): Promise<void> {
     // TODO UPDATE A FOOD PLATE ON THE API
+
+    const { id, available } = editingFood;
+
+    const updatedFood = { id, ...food, available };
+
+    const response = await api.put(`/foods/${editingFood.id}`, updatedFood);
+
+    const updatedState = foods.filter(item => item.id !== id);
+
+    setFoods([...updatedState, response.data]);
   }
 
   async function handleDeleteFood(id: number): Promise<void> {
     // TODO DELETE A FOOD PLATE FROM THE API
+    await api.delete(`/foods/${id}`);
+
+    const updatedState = foods.filter(food => food.id !== id);
+
+    setFoods(updatedState);
   }
 
   function toggleModal(): void {
@@ -63,6 +87,8 @@ const Dashboard: React.FC = () => {
 
   function handleEditFood(food: IFoodPlate): void {
     // TODO SET THE CURRENT EDITING FOOD ID IN THE STATE
+    setEditingFood(food);
+    setEditModalOpen(true);
   }
 
   return (
@@ -82,14 +108,16 @@ const Dashboard: React.FC = () => {
 
       <FoodsContainer data-testid="foods-list">
         {foods &&
-          foods.map(food => (
-            <Food
-              key={food.id}
-              food={food}
-              handleDelete={handleDeleteFood}
-              handleEditFood={handleEditFood}
-            />
-          ))}
+          foods
+            .filter(food => food.available === true)
+            .map(food => (
+              <Food
+                key={food.id}
+                food={food}
+                handleDelete={handleDeleteFood}
+                handleEditFood={handleEditFood}
+              />
+            ))}
       </FoodsContainer>
     </>
   );
